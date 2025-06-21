@@ -133,7 +133,10 @@ Reading gives us someplace to go when we have to stay where we are.`;
         const word = words[pointer];
         let result;
         if (indices.has(pointer) && word.length > 1) {
-          result = `<input type="text" data-ans="${word}" placeholder="${word[0]}" maxlength="${word.length - 1}">`;
+          result = `<input type="text" 
+                data-ans="${word}" 
+                placeholder="${word[0]}" 
+                style="width:${Math.max(60, word.length * 10)}px">`;
         } else {
           result = word;
         }
