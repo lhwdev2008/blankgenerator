@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>지문 수정 + 마스킹 + 채점 웹앱</title>
+  <title>단어 마스킹 + 채점 웹앱</title>
   <style>
     body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
     textarea, input[type=range], button { width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
     #output { line-height: 2; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border: 1px solid #ccc; min-height: 100px; }
-    input[type=text] { border: 1px solid #ccc; padding: 4px; min-width: 50px; }
+    input[type=text] { border: 1px solid #ccc; padding: 4px; min-width: 60px; display: inline-block; }
     input.correct { background-color: #c8f7c5; }
     input.incorrect { background-color: #f7c5c5; }
     .checkbox { margin-bottom: 5px; }
@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h2>📚 지문 수정 + 마스킹 + 채점 웹앱</h2>
+  <h2>📚 단어 마스킹 + 채점 웹앱</h2>
 
   <button onclick="toggleEditor()">✏️ 지문 수정</button>
   <div id="editorSection" style="display:none;">
@@ -47,13 +47,11 @@
     let passages = [];
     let correctAnswers = [];
 
-    // 🔄 지문 에디터 toggle
     function toggleEditor() {
       const section = document.getElementById("editorSection");
       section.style.display = section.style.display === "none" ? "block" : "none";
     }
 
-    // ✅ 지문 Markdown → passages로 변환
     function parseMarkdown(md) {
       const split = md.split(/^##\s+/gm).filter(p => p.trim());
       return split.map(p => {
@@ -65,7 +63,6 @@
       });
     }
 
-    // ✅ 체크박스 목록 다시 그리기
     function renderPassageList() {
       passageList.innerHTML = passages.map((p, i) =>
         `<div class="checkbox">
@@ -74,7 +71,6 @@
       ).join("");
     }
 
-    // ✅ 에디터 내용 저장 → passages 반영
     function applyMarkdown() {
       const mdText = markdownInput.value;
       passages = parseMarkdown(mdText);
@@ -82,7 +78,6 @@
       alert("✅ 지문이 저장되었습니다!");
     }
 
-    // ✅ 초기 데이터 (샘플 지문)
     const defaultMarkdown = `## Passage 1
 The quick brown fox jumps over the lazy dog.
 
@@ -92,7 +87,6 @@ Language learning opens the door to new worlds.
 ## Passage 3
 Reading gives us someplace to go when we have to stay where we are.`;
 
-    // ✅ 초기 로딩
     window.onload = () => {
       markdownInput.value = defaultMarkdown;
       passages = parseMarkdown(defaultMarkdown);
@@ -133,10 +127,9 @@ Reading gives us someplace to go when we have to stay where we are.`;
         const word = words[pointer];
         let result;
         if (indices.has(pointer) && word.length > 1) {
-          result = `<input type="text" 
-                data-ans="${word}" 
-                placeholder="${word[0]}" 
-                style="width:${Math.max(60, word.length * 10)}px">`;
+          const placeholder = word[0] + "_".repeat(word.length - 1);
+          const widthPx = Math.max(80, word.length * 12);
+          result = `<input type="text" data-ans="${word}" placeholder="${placeholder}" style="width:${widthPx}px;">`;
         } else {
           result = word;
         }
@@ -153,8 +146,7 @@ Reading gives us someplace to go when we have to stay where we are.`;
       inputs.forEach(input => {
         const expected = input.dataset.ans;
         const userInput = input.value.trim();
-        const compare = expected.slice(1);
-        if (userInput.toLowerCase() === compare.toLowerCase()) {
+        if (userInput.toLowerCase() === expected.toLowerCase()) {
           input.classList.add("correct");
           input.classList.remove("incorrect");
           correct++;
