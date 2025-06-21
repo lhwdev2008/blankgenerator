@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>단어 빈칸 마스킹 훈련기</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+    textarea, input[type=range], button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    #output {
+      white-space: pre-wrap;
+      background: #f9f9f9;
+      padding: 10px;
+      border: 1px solid #ccc;
+      min-height: 100px;
+    }
+    #copyButton {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+    #copyMessage {
+      font-size: 14px;
+      color: green;
+      display: none;
+      margin-top: -5px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📝 단어 마스킹 훈련기 (영어)</h2>
+
+  <label for="inputText">영어 지문을 입력하세요:</label>
+  <textarea id="inputText" rows="6"></textarea>
+
+  <label for="difficultyRange">난이도 조절: <span id="percentLabel">20%</span></label>
+  <input type="range" id="difficultyRange" min="10" max="100" value="20" step="1">
+
+  <button id="runButton">🔍 단어 마스킹 시작</button>
+
+  <h3>📘 출력 결과:</h3>
+  <div id="output"></div>
+  <button id="copyButton">📋 결과 복사</button>
+  <div id="copyMessage">복사되었습니다!</div>
+
+  <script>
+    const rangeInput = document.getElementById("difficultyRange");
+    const label = document.getElementById("percentLabel");
+    const runButton = document.getElementById("runButton");
+    const copyButton = document.getElementById("copyButton");
+    const copyMessage = document.getElementById("copyMessage");
+
+    // 슬라이더 퍼센트 표시
+    rangeInput.addEventListener("input", () => {
+      label.textContent = rangeInput.value + "%";
+    });
+
+    // 마스킹 실행
+    runButton.addEventListener("click", () => {
+      const input = document.getElementById("inputText").value;
+      const percent = parseInt(rangeInput.value, 10);
+      const words = input.match(/\b\w+\b/g);
+
+      if (!words) {
+        document.getElementById("output").innerText = "(입력된 단어가 없습니다)";
+        return;
+      }
+
+      const total = words.length;
+      const numToMask = percent === 100 ? total : Math.floor(total * (percent / 100));
+      const indices = new Set();
+      while (indices.size < numToMask) {
+        indices.add(Math.floor(Math.random() * total));
+      }
+
+      const masked = [...words];
+      indices.forEach(i => {
+        const word = words[i];
+        if (word.length > 1) {
+          masked[i] = word[0] + "_".repeat(word.length - 1);
+        }
+      });
+
+      let pointer = 0;
+      const result = input.replace(/\b\w+\b/g, () => masked[pointer++]);
+      document.getElementById("output").innerText = result;
+    });
+
+    // 복사 버튼 기능
+    copyButton.addEventListener("click", () => {
+      const text = document.getElementById("output").innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        copyMessage.style.display = "block";
+        setTimeout(() => {
+          copyMessage.style.display = "none";
+        }, 1500);
+      });
+    });
+
+    // 초기 퍼센트 표시
+    label.textContent = rangeInput.value + "%";
+  </script>
+</body>
+</html>
