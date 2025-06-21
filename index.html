@@ -2,77 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>단어 빈칸 마스킹 훈련기</title>
+  <title>지문 수정 + 마스킹 + 채점 웹앱</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      max-width: 800px;
-      margin: auto;
-    }
-    textarea, input[type=range], button {
-      width: 100%;
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
-    }
-    #output {
-      white-space: pre-wrap;
-      background: #f9f9f9;
-      padding: 10px;
-      border: 1px solid #ccc;
-      min-height: 100px;
-    }
-    #copyButton {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-    }
-    #copyMessage {
-      font-size: 14px;
-      color: green;
-      display: none;
-      margin-top: -5px;
-      margin-bottom: 10px;
-    }
+    body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+    textarea, input[type=range], button { width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
+    #output { line-height: 2; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border: 1px solid #ccc; min-height: 100px; }
+    input[type=text] { border: 1px solid #ccc; padding: 4px; min-width: 50px; }
+    input.correct { background-color: #c8f7c5; }
+    input.incorrect { background-color: #f7c5c5; }
+    .checkbox { margin-bottom: 5px; }
+    #copyMessage { font-size: 14px; color: green; display: none; margin-bottom: 10px; }
   </style>
 </head>
 <body>
-  <h2>📝 단어 마스킹 훈련기 (영어)</h2>
+  <h2>📚 지문 수정 + 마스킹 + 채점 웹앱</h2>
 
-  <label for="inputText">영어 지문을 입력하세요:</label>
-  <textarea id="inputText" rows="6"></textarea>
+  <button onclick="toggleEditor()">✏️ 지문 수정</button>
+  <div id="editorSection" style="display:none;">
+    <h4>📄 Markdown 지문 편집기</h4>
+    <textarea id="markdownInput" rows="10"></textarea>
+    <button onclick="applyMarkdown()">💾 지문 저장 및 반영</button>
+  </div>
+
+  <div id="passageList">지문 불러오는 중...</div>
 
   <label for="difficultyRange">난이도 조절: <span id="percentLabel">20%</span></label>
   <input type="range" id="difficultyRange" min="10" max="100" value="20" step="1">
 
-  <button id="runButton">🔍 단어 마스킹 시작</button>
+  <button id="runButton">🔍 마스킹 시작</button>
+  <button id="gradeButton">✅ 채점</button>
 
   <h3>📘 출력 결과:</h3>
   <div id="output"></div>
-  <button id="copyButton">📋 결과 복사</button>
   <div id="copyMessage">복사되었습니다!</div>
 
   <script>
+    const passageList = document.getElementById("passageList");
+    const percentLabel = document.getElementById("percentLabel");
     const rangeInput = document.getElementById("difficultyRange");
-    const label = document.getElementById("percentLabel");
     const runButton = document.getElementById("runButton");
-    const copyButton = document.getElementById("copyButton");
-    const copyMessage = document.getElementById("copyMessage");
+    const gradeButton = document.getElementById("gradeButton");
+    const outputDiv = document.getElementById("output");
+    const markdownInput = document.getElementById("markdownInput");
+    let passages = [];
+    let correctAnswers = [];
 
-    // 슬라이더 퍼센트 표시
+    // 🔄 지문 에디터 toggle
+    function toggleEditor() {
+      const section = document.getElementById("editorSection");
+      section.style.display = section.style.display === "none" ? "block" : "none";
+    }
+
+    // ✅ 지문 Markdown → passages로 변환
+    function parseMarkdown(md) {
+      const split = md.split(/^##\s+/gm).filter(p => p.trim());
+      return split.map(p => {
+        const lines = p.trim().split("\n");
+        return {
+          title: lines[0].trim(),
+          content: lines.slice(1).join(" ").trim()
+        };
+      });
+    }
+
+    // ✅ 체크박스 목록 다시 그리기
+    function renderPassageList() {
+      passageList.innerHTML = passages.map((p, i) =>
+        `<div class="checkbox">
+           <label><input type="checkbox" value="${i}"> ${p.title}</label>
+         </div>`
+      ).join("");
+    }
+
+    // ✅ 에디터 내용 저장 → passages 반영
+    function applyMarkdown() {
+      const mdText = markdownInput.value;
+      passages = parseMarkdown(mdText);
+      renderPassageList();
+      alert("✅ 지문이 저장되었습니다!");
+    }
+
+    // ✅ 초기 데이터 (샘플 지문)
+    const defaultMarkdown = `## Passage 1
+The quick brown fox jumps over the lazy dog.
+
+## Passage 2
+Language learning opens the door to new worlds.
+
+## Passage 3
+Reading gives us someplace to go when we have to stay where we are.`;
+
+    // ✅ 초기 로딩
+    window.onload = () => {
+      markdownInput.value = defaultMarkdown;
+      passages = parseMarkdown(defaultMarkdown);
+      renderPassageList();
+      percentLabel.textContent = rangeInput.value + "%";
+    };
+
     rangeInput.addEventListener("input", () => {
-      label.textContent = rangeInput.value + "%";
+      percentLabel.textContent = rangeInput.value + "%";
     });
 
-    // 마스킹 실행
     runButton.addEventListener("click", () => {
-      const input = document.getElementById("inputText").value;
-      const percent = parseInt(rangeInput.value, 10);
-      const words = input.match(/\b\w+\b/g);
+      const selected = Array.from(document.querySelectorAll("#passageList input:checked"))
+        .map(cb => passages[parseInt(cb.value)]);
+      if (selected.length === 0) {
+        outputDiv.innerText = "(지문을 선택하세요)";
+        return;
+      }
 
+      const text = selected.map(p => p.content).join(" ");
+      const percent = parseInt(rangeInput.value, 10);
+      const words = text.match(/\b\w+\b/g);
       if (!words) {
-        document.getElementById("output").innerText = "(입력된 단어가 없습니다)";
+        outputDiv.innerText = "(단어 없음)";
         return;
       }
 
@@ -83,32 +127,43 @@
         indices.add(Math.floor(Math.random() * total));
       }
 
-      const masked = [...words];
-      indices.forEach(i => {
-        const word = words[i];
-        if (word.length > 1) {
-          masked[i] = word[0] + "_".repeat(word.length - 1);
+      correctAnswers = [...words];
+      let pointer = 0;
+      const html = text.replace(/\b\w+\b/g, () => {
+        const word = words[pointer];
+        let result;
+        if (indices.has(pointer) && word.length > 1) {
+          result = `<input type="text" data-ans="${word}" placeholder="${word[0]}" maxlength="${word.length - 1}">`;
+        } else {
+          result = word;
+        }
+        pointer++;
+        return result;
+      });
+
+      outputDiv.innerHTML = html;
+    });
+
+    gradeButton.addEventListener("click", () => {
+      const inputs = outputDiv.querySelectorAll("input[type=text]");
+      let correct = 0;
+      inputs.forEach(input => {
+        const expected = input.dataset.ans;
+        const userInput = input.value.trim();
+        const compare = expected.slice(1);
+        if (userInput.toLowerCase() === compare.toLowerCase()) {
+          input.classList.add("correct");
+          input.classList.remove("incorrect");
+          correct++;
+        } else {
+          input.classList.add("incorrect");
+          input.classList.remove("correct");
         }
       });
 
-      let pointer = 0;
-      const result = input.replace(/\b\w+\b/g, () => masked[pointer++]);
-      document.getElementById("output").innerText = result;
+      const percent = inputs.length > 0 ? Math.round((correct / inputs.length) * 100) : 0;
+      alert(`✅ ${correct}/${inputs.length} 정답 (${percent}%)`);
     });
-
-    // 복사 버튼 기능
-    copyButton.addEventListener("click", () => {
-      const text = document.getElementById("output").innerText;
-      navigator.clipboard.writeText(text).then(() => {
-        copyMessage.style.display = "block";
-        setTimeout(() => {
-          copyMessage.style.display = "none";
-        }, 1500);
-      });
-    });
-
-    // 초기 퍼센트 표시
-    label.textContent = rangeInput.value + "%";
   </script>
 </body>
 </html>
